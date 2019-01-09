@@ -13,7 +13,7 @@ module Make
 
 
   let register s_addr c_uuid c_addr =
-    Owl_log.debug ">>> %s Reg_Req" s_addr;
+    Actor_log.debug ">>> %s Reg_Req" s_addr;
     let s = encode_message c_uuid c_addr Reg_Req in
     Net.send s_addr s
 
@@ -21,7 +21,7 @@ module Make
   let heartbeat s_addr c_uuid c_addr =
     let rec loop () =
       let%lwt () = Sys.sleep 10. in
-      Owl_log.debug ">>> %s Heartbeat" s_addr;
+      Actor_log.debug ">>> %s Heartbeat" s_addr;
       let s = encode_message c_uuid c_addr Heartbeat in
       let%lwt () = Net.send s_addr s in
       loop ()
@@ -36,21 +36,21 @@ module Make
 
     match m.operation with
     | Reg_Rep -> (
-        Owl_log.debug "<<< %s Reg_Rep" m.uuid;
+        Actor_log.debug "<<< %s Reg_Rep" m.uuid;
         Lwt.return ()
       )
     | Exit -> (
-        Owl_log.debug "<<< %s Exit" m.uuid;
+        Actor_log.debug "<<< %s Exit" m.uuid;
         Lwt.return ()
       )
     | PS_Schd tasks -> (
-        Owl_log.debug "<<< %s PS_Schd" m.uuid;
+        Actor_log.debug "<<< %s PS_Schd" m.uuid;
         let updates = Impl.push tasks in
         let s = encode_message my_uuid my_addr (PS_Push updates) in
         Net.send context.server_addr s
       )
     | _ -> (
-        Owl_log.error "unknown message type";
+        Actor_log.error "unknown message type";
         Lwt.return ()
       )
 

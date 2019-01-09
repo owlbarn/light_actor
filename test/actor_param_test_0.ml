@@ -38,7 +38,7 @@ module Impl = struct
     Unix.sleep (Random.int 3);
     Array.map (fun (key, value) ->
       let new_value = value + Random.int 10 in
-      Owl_log.info "%s: %i => %i" key value new_value;
+      Actor_log.info "%s: %i => %i" key value new_value;
       (key, new_value)
     ) kv_pairs
 
@@ -53,7 +53,7 @@ module M = Actor_param.Make (Actor_net_zmq) (Actor_sys_unix) (Impl)
 
 
 let main args =
-  Owl_log.(set_level DEBUG);
+  Actor_log.(set_level DEBUG);
   Random.self_init ();
 
   (* define server uuid and address *)

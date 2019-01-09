@@ -18,11 +18,11 @@ module Make
 
   let init context =
     if context.my_uuid = context.server_uuid then (
-      Owl_log.debug "param server %s @ %s" context.my_uuid context.my_addr;
+      Actor_log.debug "param server %s @ %s" context.my_uuid context.my_addr;
       Server.init context
     )
     else (
-      Owl_log.debug "param client %s @ %s" context.my_uuid context.my_addr;
+      Actor_log.debug "param client %s @ %s" context.my_uuid context.my_addr;
       Client.init context
     )
 

@@ -15,19 +15,19 @@ module Make
   let heartbeat context =
     let rec loop () =
       let%lwt () = Sys.sleep 10. in
-      Owl_log.debug "Heartbeat %s" context.my_uuid;
+      Actor_log.debug "Heartbeat %s" context.my_uuid;
       loop ()
     in
     loop ()
 
 
   let schedule uuid context =
-    Owl_log.debug "Schedule %s" context.my_uuid;
+    Actor_log.debug "Schedule %s" context.my_uuid;
     Actor_barrier_bsp.sync context.book uuid;
     let passed = Actor_barrier_bsp.pass context.book in
     let tasks = Impl.schd passed in
     Array.iter (fun (uuid, kv_pairs) ->
-      Owl_log.debug ">>> %s Schedule ..." uuid;
+      Actor_log.debug ">>> %s Schedule ..." uuid;
       let addr = Actor_book.get_addr context.book uuid in
       let s = encode_message uuid addr (PS_Schd kv_pairs) in
       Lwt.async (fun () -> Net.send addr s)
@@ -42,7 +42,7 @@ module Make
 
     match m.operation with
     | Reg_Req -> (
-        Owl_log.debug "<<< %s Reg_Req" m.uuid;
+        Actor_log.debug "<<< %s Reg_Req" m.uuid;
         Actor_book.set_addr context.book m.uuid m.addr;
         let s = encode_message my_uuid my_addr Reg_Rep in
         let%lwt () = Net.send m.addr s in
@@ -51,27 +51,27 @@ module Make
         Lwt.return ()
       )
     | Heartbeat -> (
-        Owl_log.debug "<<< %s Heartbeat" m.uuid;
+        Actor_log.debug "<<< %s Heartbeat" m.uuid;
         Lwt.return ()
       )
     | PS_Get -> (
-        Owl_log.debug "<<< %s PS_Get" m.uuid;
-        Owl_log.error "PS_Get is not implemented";
+        Actor_log.debug "<<< %s PS_Get" m.uuid;
+        Actor_log.error "PS_Get is not implemented";
         Lwt.return ()
       )
     | PS_Set updates -> (
-        Owl_log.debug "<<< %s PS_Set" m.uuid;
+        Actor_log.debug "<<< %s PS_Set" m.uuid;
         Impl.set updates;
         Lwt.return ()
       )
     | PS_Push updates -> (
-        Owl_log.debug "<<< %s Push" m.uuid;
+        Actor_log.debug "<<< %s Push" m.uuid;
         Impl.pull updates |> Impl.set;
         schedule m.uuid context;
         Lwt.return ()
       )
     | _ -> (
-        Owl_log.error "unknown message type";
+        Actor_log.error "unknown message type";
         Lwt.return ()
       )
 

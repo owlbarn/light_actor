@@ -7,7 +7,6 @@
 let is_ready book =
   let ready = ref true in
   Hashtbl.iter (fun _ n ->
-    Owl_log.error "%s %s" Actor_book.(n.uuid) Actor_book.(n.addr);
     if Actor_book.(String.length n.addr = 0) then
       ready := false
   ) book;
@@ -24,8 +23,6 @@ let arr_to_htbl arr =
 
 
 let htbl_to_arr htbl =
-  let stack = Owl_utils_stack.make () in
-  Hashtbl.iter (fun k v ->
-    Owl_utils_stack.push stack (k, v)
-  ) htbl;
-  Owl_utils_stack.to_array stack
+  Hashtbl.fold (fun k v acc ->
+    Array.append acc [| (k,v) |]
+  ) htbl [||]

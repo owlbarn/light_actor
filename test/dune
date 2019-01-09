@@ -5,5 +5,9 @@
   (names
     actor_param_test_0
   )
-  (libraries actor)
+  (package actor_unix)
+  (libraries
+    actor
+    actor_unix
+  )
 )
