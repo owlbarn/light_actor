@@ -21,7 +21,7 @@ let pass book =
     Actor_param_utils.htbl_to_arr book
     |> Array.map fst
   else
-    [| |]
+    [| (* nobody shall pass *) |]
 
 
 let sync book uuid =

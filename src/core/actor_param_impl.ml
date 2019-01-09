@@ -6,11 +6,11 @@
 
 module type Sig = sig
 
-  type model
+  type model   (* abstract model definition *)
 
-  type key
+  type key     (* key for refering a value in the model *)
 
-  type value
+  type value   (* value type of the model *)
 
   val get : key array -> value array
 

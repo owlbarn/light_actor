@@ -13,12 +13,12 @@ module Make
 
 
   let heartbeat context =
-    let rec loop () =
+    let rec loop i =
       let%lwt () = Sys.sleep 10. in
-      Actor_log.debug "Heartbeat %s" context.my_uuid;
-      loop ()
+      Actor_log.debug "Heartbeat #%i %s" i context.my_uuid;
+      loop (i + 1)
     in
-    loop ()
+    loop 0
 
 
   let schedule uuid context =
@@ -50,11 +50,11 @@ module Make
           schedule m.uuid context;
         Lwt.return ()
       )
-    | Heartbeat -> (
-        Actor_log.debug "<<< %s Heartbeat" m.uuid;
+    | Heartbeat i -> (
+        Actor_log.debug "<<< %s Heartbeat #%i" m.uuid i;
         Lwt.return ()
       )
-    | PS_Get -> (
+    | PS_Get _keys -> (
         Actor_log.debug "<<< %s PS_Get" m.uuid;
         Actor_log.error "PS_Get is not implemented";
         Lwt.return ()

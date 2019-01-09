@@ -16,12 +16,8 @@ and node = {
 let make () : t = Hashtbl.create 128
 
 
-let make_node uuid addr busy step = {
-  uuid;
-  addr;
-  busy;
-  step;
-}
+let make_node uuid addr busy step =
+  { uuid; addr; busy; step }
 
 
 let add book uuid addr busy step =

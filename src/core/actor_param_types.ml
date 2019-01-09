@@ -9,16 +9,16 @@ module Make
   = struct
 
   type operation =
-    (* General messge types *)
+    (* General message types *)
     | Reg_Req
     | Reg_Rep
-    | Heartbeat
-    | Exit
-    (* Model parallel types *)
-    | PS_Get
-    | PS_Set  of (Impl.key * Impl.value) array
-    | PS_Schd of (Impl.key * Impl.value) array
-    | PS_Push of (Impl.key * Impl.value) array
+    | Heartbeat of int
+    | Exit      of int
+    (* Model parallel message types *)
+    | PS_Get    of Impl.key array
+    | PS_Set    of (Impl.key * Impl.value) array
+    | PS_Schd   of (Impl.key * Impl.value) array
+    | PS_Push   of (Impl.key * Impl.value) array
 
 
   type message = {

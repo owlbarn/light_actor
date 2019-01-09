@@ -7,7 +7,6 @@ module type Sig = sig
 
   type socket
 
-
   val init : unit -> unit Lwt.t
 
   val exit : unit -> unit Lwt.t

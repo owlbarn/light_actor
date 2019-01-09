@@ -19,14 +19,14 @@ module Make
 
 
   let heartbeat s_addr c_uuid c_addr =
-    let rec loop () =
+    let rec loop i =
       let%lwt () = Sys.sleep 10. in
-      Actor_log.debug ">>> %s Heartbeat" s_addr;
-      let s = encode_message c_uuid c_addr Heartbeat in
+      Actor_log.debug ">>> %s Heartbeat #%i" s_addr i;
+      let s = encode_message c_uuid c_addr (Heartbeat i) in
       let%lwt () = Net.send s_addr s in
-      loop ()
+      loop (i + 1)
     in
-    loop ()
+    loop 0
 
 
   let process context data =
@@ -39,8 +39,8 @@ module Make
         Actor_log.debug "<<< %s Reg_Rep" m.uuid;
         Lwt.return ()
       )
-    | Exit -> (
-        Actor_log.debug "<<< %s Exit" m.uuid;
+    | Exit code -> (
+        Actor_log.debug "<<< %s Exit %i" m.uuid code;
         Lwt.return ()
       )
     | PS_Schd tasks -> (
