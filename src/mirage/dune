@@ -1,0 +1,8 @@
+(library
+  (name actor_mirage)
+  (public_name actor_mirage)
+  (flags (:standard -w "-50" -safe-string))
+  (wrapped false)
+  (preprocess (pps lwt.ppx))
+  (libraries lwt)
+)
