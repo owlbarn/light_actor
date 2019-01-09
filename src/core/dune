@@ -1,0 +1,16 @@
+(library
+  (name actor)
+  (public_name actor)
+  (flags (
+    ; turn off some warnings as 4.06.0 is pernickety and errors out
+    :standard -w "-50" -safe-string)
+  )
+  (wrapped false)
+  (preprocess (pps lwt.ppx))
+  (libraries
+    lwt
+    ocamlgraph
+    owl-base
+    zmq-lwt
+  )
+)

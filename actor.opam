@@ -1,0 +1,28 @@
+opam-version: "1.2"
+maintainer: "Liang Wang (ryanrhymes@gmail.com)"
+authors: [ "Liang Wang (ryanrhymes@gmail.com)" ]
+license: "MIT"
+homepage: "https://github.com/ryanrhymes/light_actor/"
+dev-repo: "git+https://github.com/ryanrhymes/light_actor.git"
+bug-reports: "https://github.com/ryanrhymes/light_actor/issues"
+doc: "http://www.cl.cam.ac.uk/~lw525/"
+
+version: "dev"
+
+build: [
+  ["dune" "subst" "-n" name] {pinned}
+  ["dune" "build" "-p" name "-j" jobs]
+]
+build-test: [["dune" "runtest" "-p" name "-j" jobs]]
+
+depexts: [
+  "zmq"
+]
+
+depends: [
+  "dune" {build}
+  "ocamlgraph"
+  "owl"
+  "zmq"
+]
+available: [ ocaml-version >= "4.04.0" ]
