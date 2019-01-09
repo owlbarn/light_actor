@@ -4,5 +4,7 @@
   (flags (:standard -w "-50" -safe-string))
   (wrapped false)
   (preprocess (pps lwt.ppx))
-  (libraries lwt)
+  (libraries
+    mirage-time-lwt
+  )
 )

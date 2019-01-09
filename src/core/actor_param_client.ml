@@ -12,18 +12,18 @@ module Make
   include Actor_param_types.Make(Impl)
 
 
-  let register s_addr c_uuid c_addr =
-    Actor_log.debug ">>> %s Reg_Req" s_addr;
-    let s = encode_message c_uuid c_addr Reg_Req in
-    Net.send s_addr s
+  let register server_addr uuid addr =
+    Actor_log.debug ">>> %s Reg_Req" server_addr;
+    let s = encode_message uuid addr Reg_Req in
+    Net.send server_addr s
 
 
-  let heartbeat s_addr c_uuid c_addr =
+  let heartbeat server_addr uuid addr =
     let rec loop i =
       let%lwt () = Sys.sleep 10. in
-      Actor_log.debug ">>> %s Heartbeat #%i" s_addr i;
-      let s = encode_message c_uuid c_addr (Heartbeat i) in
-      let%lwt () = Net.send s_addr s in
+      Actor_log.debug ">>> %s Heartbeat #%i" server_addr i;
+      let s = encode_message uuid addr (Heartbeat i) in
+      let%lwt () = Net.send server_addr s in
       loop (i + 1)
     in
     loop 0

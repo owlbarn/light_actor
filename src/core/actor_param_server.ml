@@ -27,7 +27,7 @@ module Make
     let passed = Actor_barrier_bsp.pass context.book in
     let tasks = Impl.schd passed in
     Array.iter (fun (uuid, kv_pairs) ->
-      Actor_log.debug ">>> %s Schedule ..." uuid;
+      Actor_log.debug ">>> %s PS_Schd" uuid;
       let addr = Actor_book.get_addr context.book uuid in
       let s = encode_message uuid addr (PS_Schd kv_pairs) in
       Lwt.async (fun () -> Net.send addr s)
