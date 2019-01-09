@@ -28,7 +28,8 @@ module Impl = struct
 
   let schd nodes =
     Array.map (fun node ->
-      let key = "a" in
+      let i = Random.int 3 in
+      let key = [|"a"; "b"; "c"|].(i) in
       let value = (get [|key|]).(0) in
       let tasks = [|(key, value)|] in
       (node, tasks)
