@@ -22,4 +22,6 @@ module type Sig = sig
 
   val pull : (key * value) array -> (key * value) array
 
+  val stop : unit -> bool
+
 end

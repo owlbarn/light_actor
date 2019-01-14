@@ -21,7 +21,7 @@ let exit () =
   Hashtbl.iter (fun _ v ->
     Lwt.async (fun () -> Zmq_lwt.Socket.close v)
   ) conn_pool;
-  Zmq.Context.terminate !context;
+  (* Zmq.Context.terminate !context; *)
   Lwt.return ()
 
 
@@ -39,6 +39,7 @@ let bind sock addr =
 let listen addr callback =
   let raw_sock = Zmq.Socket.create !context Zmq.Socket.router in
   Zmq.Socket.bind raw_sock addr;
+  Zmq.Socket.set_receive_high_water_mark raw_sock 1000;
   let lwt_sock = Zmq_lwt.Socket.of_socket raw_sock in
 
   let rec loop () =

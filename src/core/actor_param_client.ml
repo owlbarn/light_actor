@@ -18,12 +18,15 @@ module Make
     Net.send server_addr s
 
 
-  let heartbeat server_addr uuid addr =
+  let heartbeat context =
+    let server_addr = context.server_addr in
+    let uuid = context.my_uuid in
+    let addr = context.my_addr in
     let rec loop i =
       let%lwt () = Sys.sleep 10. in
       Actor_log.debug ">>> %s Heartbeat #%i" server_addr i;
       let s = encode_message uuid addr (Heartbeat i) in
-      let%lwt () = Net.send server_addr s in
+      Lwt.async (fun () -> Net.send server_addr s);
       loop (i + 1)
     in
     loop 0
@@ -41,7 +44,7 @@ module Make
       )
     | Exit code -> (
         Actor_log.debug "<<< %s Exit %i" m.uuid code;
-        Lwt.return ()
+        failwith "finished"
       )
     | PS_Schd tasks -> (
         Actor_log.debug "<<< %s PS_Schd" m.uuid;
@@ -63,15 +66,20 @@ module Make
     let addr = context.my_addr in
     let%lwt () = register context.server_addr uuid addr in
 
-    (* start client service *)
-    let thread_0 = heartbeat context.server_addr uuid addr in
-    let thread_1 = Net.listen addr (process context) in
-    let%lwt () = thread_0 in
-    let%lwt () = thread_1 in
-
-    (* clean up when client exits *)
-    let%lwt () = Net.exit () in
-    Lwt.return ()
+    try%lwt (
+      (* start client service *)
+      let thread_0 = Net.listen addr (process context) in
+      let thread_1 = heartbeat context in
+      let%lwt () = thread_0 in
+      let%lwt () = thread_1 in
+      Lwt.return ()
+    )
+    with _ -> (
+      (* clean up when client exits *)
+      Actor_log.debug "%s exits" uuid;
+      let%lwt () = Sys.sleep 1. in
+      Net.exit ()
+    )
 
 
 end

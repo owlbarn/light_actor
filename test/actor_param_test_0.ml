@@ -11,6 +11,8 @@ module Impl = struct
 
   type value = int
 
+  let start_t = ref 0
+
   let model : model =
     let htbl = Hashtbl.create 128 in
     Hashtbl.add htbl "a" 0;
@@ -45,6 +47,11 @@ module Impl = struct
 
   let pull updates = updates
 
+  let stop () =
+    Actor_log.info "start_t = %i" !start_t;
+    start_t := !start_t + 1;
+    !start_t < 50
+
 end
 
 
@@ -73,8 +80,8 @@ let main args =
 
   (* define the participants *)
   let book = Actor_book.make () in
-  Actor_book.add book "w0" "" false (-1);
-  Actor_book.add book "w1" "" false (-1);
+  Actor_book.add book "w0" "" true (-1);
+  Actor_book.add book "w1" "" true (-1);
   if my_uuid <> server_uuid then
     Actor_book.set_addr book my_uuid my_addr;
 

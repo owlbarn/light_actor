@@ -21,18 +21,32 @@ module Make
     loop 0
 
 
+  let terminate context =
+    Hashtbl.iter (fun uuid _ ->
+      Actor_log.debug ">>> %s Exit" uuid;
+      let addr = Actor_book.get_addr context.book uuid in
+      let s = encode_message uuid addr (Exit 0) in
+      Lwt.async (fun () -> Net.send addr s)
+    ) context.book
+
+
   let schedule uuid context =
     Actor_log.debug "Schedule %s" context.my_uuid;
     Actor_barrier_bsp.sync context.book uuid;
-    let passed = Actor_barrier_bsp.pass context.book in
-    let tasks = Impl.schd passed in
-    Array.iter (fun (uuid, kv_pairs) ->
-      Actor_log.debug ">>> %s PS_Schd" uuid;
-      let addr = Actor_book.get_addr context.book uuid in
-      let s = encode_message uuid addr (PS_Schd kv_pairs) in
-      Lwt.async (fun () -> Net.send addr s)
-    ) tasks
-
+    if Impl.stop () then (
+      let passed = Actor_barrier_bsp.pass context.book in
+      let tasks = Impl.schd passed in
+      Array.iter (fun (uuid, kv_pairs) ->
+        Actor_log.debug ">>> %s PS_Schd" uuid;
+        let addr = Actor_book.get_addr context.book uuid in
+        let s = encode_message uuid addr (PS_Schd kv_pairs) in
+        Lwt.async (fun () -> Net.send addr s)
+      ) tasks
+    )
+    else (
+      terminate context;
+      failwith "finished"
+    )
 
 
   let process context data =
@@ -46,8 +60,8 @@ module Make
         Actor_book.set_addr context.book m.uuid m.addr;
         let s = encode_message my_uuid my_addr Reg_Rep in
         let%lwt () = Net.send m.addr s in
-        if Actor_param_utils.is_ready context.book then
-          schedule m.uuid context;
+        (* bootstrapping is a BSP barrier *)
+        schedule m.uuid context;
         Lwt.return ()
       )
     | Heartbeat i -> (
@@ -79,15 +93,20 @@ module Make
   let init context =
     let%lwt () = Net.init () in
 
-    (* start server service *)
-    let thread_0 = Net.listen context.my_addr (process context) in
-    let thread_1 = heartbeat context in
-    let%lwt () = thread_0 in
-    let%lwt () = thread_1 in
-
-    (* clean up when server exits *)
-    let%lwt () = Net.exit () in
-    Lwt.return ()
+    try%lwt (
+      (* start server service *)
+      let thread_0 = Net.listen context.my_addr (process context) in
+      let thread_1 = heartbeat context in
+      let%lwt () = thread_0 in
+      let%lwt () = thread_1 in
+      Lwt.return ()
+    )
+    with _ -> (
+      (* clean up when server exits *)
+      Actor_log.debug "%s exits" context.my_uuid;
+      let%lwt () = Sys.sleep 1. in
+      Net.exit ()
+    )
 
 
 end

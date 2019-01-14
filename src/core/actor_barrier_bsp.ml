@@ -7,23 +7,31 @@ open Actor_book
 
 
 let pass book =
-  let fastest = ref min_int in
-  let synced = ref true in
+  let fastest = Hashtbl.fold (fun _ node acc ->
+    max node.step acc
+  ) book min_int
+  in
 
-  Hashtbl.iter (fun _ node ->
-    if node.step > !fastest then
-      fastest := node.step;
-    if !fastest > min_int && !fastest != node.step then
-      synced := false
-  ) book;
+  let synced = Hashtbl.fold (fun _ node acc ->
+    not (fastest != node.step || node.busy = true) && acc
+  ) book true
+  in
 
-  if !synced then
-    Actor_param_utils.htbl_to_arr book
-    |> Array.map fst
+  if synced then (
+    Hashtbl.fold (fun uuid node acc ->
+      if node.busy = false then (
+        node.busy <- true;
+        Array.append acc [| uuid |]
+      )
+      else
+        acc
+    ) book [| |]
+  )
   else
     [| (* nobody shall pass *) |]
 
 
 let sync book uuid =
   let step = Actor_book.get_step book uuid in
+  Actor_book.set_busy book uuid false;
   Actor_book.set_step book uuid (step + 1)
