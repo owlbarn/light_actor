@@ -174,16 +174,16 @@ module Impl = struct
     | Some state ->
         let len = Array.length state.loss in
         let loss = state.loss.(len - 1) |> unpack_flt in
-        if (loss < 2.0) then false else true
-    | None       -> true *)
+        if (loss < 2.0) then true else false
+    | None       -> false *)
 
   (* stop function #2 *)
   (* let stop () =
     Actor_log.info "start_t = %i" !start_t;
     start_t := !start_t + 1;
-    !start_t < 7 *)
+    !start_t > 7 *)
 
-  let stop () = true
+  let stop () = false
 
 end
 
