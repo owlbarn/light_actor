@@ -127,18 +127,17 @@ module Impl = struct
   (* on server *)
   let schd nodes =
     Array.map (fun node ->
+      Actor_log.info "node: %s schd" node;
       let key = "a" in
       let value = (get [|key|]).(0) in
       let tasks = [|(key, value)|] in
-      set tasks;
-      Actor_log.debug "node: %s schd" node;
       (node, tasks)
     ) nodes
 
   (* on worker *)
   let push kv_pairs =
     Array.map (fun (k, v) ->
-      Actor_log.debug "push: %s, %s" k (G.get_network_name v.nn);
+      Actor_log.info "push: %s, %s" k (G.get_network_name v.nn);
       let ps_nn = G.copy v.nn in
       let x, y = get_next_batch () in
       let state = match v.state with
@@ -156,7 +155,7 @@ module Impl = struct
   (* on server *)
   let pull kv_pairs =
     Array.map (fun (k, v) ->
-      Actor_log.debug "push: %s, %s" k (G.get_network_name v.nn);
+      Actor_log.info "push: %s, %s" k (G.get_network_name v.nn);
       let u = (get [|k|]).(0) in
       let par0 = G.mkpar u.nn in
       let par1 = G.mkpar v.nn in
