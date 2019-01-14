@@ -33,7 +33,7 @@ module Make
   let schedule uuid context =
     Actor_log.debug "Schedule %s" context.my_uuid;
     Actor_barrier_bsp.sync context.book uuid;
-    if not (Impl.stop ()) then (
+    if Impl.stop () = false then (
       let passed = Actor_barrier_bsp.pass context.book in
       let tasks = Impl.schd passed in
       Array.iter (fun (uuid, kv_pairs) ->
