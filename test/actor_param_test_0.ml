@@ -50,7 +50,7 @@ module Impl = struct
   let stop () =
     Actor_log.info "start_t = %i" !start_t;
     start_t := !start_t + 1;
-    !start_t < 50
+    !start_t >= 50
 
 end
 
