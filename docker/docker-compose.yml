@@ -1,0 +1,39 @@
+version: '3'
+services:
+
+  server:
+    image: lwae
+    ports:
+     - "5555"
+     - "5555/udp"
+    volumes:
+     - ..:/code
+    environment:
+     - SERVER_PORT=5555
+    command: server
+
+  w0:
+    image: lwae
+    ports:
+     - "6000"
+     - "6000/udp"
+    depends_on:
+     - server
+    volumes:
+     - ..:/code
+    environment:
+     - PORT=6000
+    command: w0
+
+  w1:
+    image: lwae
+    ports:
+     - "6001"
+     - "6001/udp"
+    depends_on:
+     - server
+    volumes:
+     - ..:/code
+    environment:
+     - PORT=6001
+    command: w1
