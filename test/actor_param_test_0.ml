@@ -60,13 +60,23 @@ include Actor_param_types.Make(Impl)
 module M = Actor_param.Make (Actor_net_zmq) (Actor_sys_unix) (Impl)
 
 
+let ip_of_uuid id =
+  try
+    (Unix.gethostbyname id).h_addr_list.(0)
+    |> Unix.string_of_inet_addr
+  with Not_found -> "127.0.0.1"
+
 let main args =
   Actor_log.(set_level DEBUG);
   Random.self_init ();
 
   (* define server uuid and address *)
   let server_uuid = "server" in
-  let server_addr = "tcp://127.0.0.1:5555" in
+  let server_port =
+    try Unix.getenv "SERVER_PORT"
+    with Not_found -> "5555" in
+  let server_addr = "tcp://" ^ (ip_of_uuid  server_uuid) ^
+                    ":" ^ server_port in
 
   (* define my own uuid and address *)
   let my_uuid = args.(1) in
@@ -74,8 +84,11 @@ let main args =
     if my_uuid = server_uuid then
       server_addr
     else
-      let port = string_of_int (6000 + Random.int 1000) in
-      "tcp://127.0.0.1:" ^ port
+      let port = try Unix.getenv "PORT"
+        with Not_found ->
+          string_of_int (6000 + Random.int 1000)
+      in
+      "tcp://" ^ (ip_of_uuid my_uuid) ^ ":" ^ port
   in
 
   (* define the participants *)
