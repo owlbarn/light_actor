@@ -6,5 +6,7 @@
   (preprocess (pps lwt.ppx))
   (libraries
     mirage-time-lwt
+    mirage-os-shim
+    duration
   )
 )
