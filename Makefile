@@ -38,3 +38,12 @@ cleanall:
 push:
 	git commit -am "coding ..." && \
 	git push origin `git branch | grep \* | cut -d ' ' -f2`
+
+.PHONY: images
+images: image_lwae
+
+image_lwae: image_owl
+	docker image build . --network host -f docker/Dockerfile -t lwae
+
+image_owl:
+	docker image build -t owl --network host https://raw.githubusercontent.com/owlbarn/owl/master/docker/Dockerfile.ubuntu
