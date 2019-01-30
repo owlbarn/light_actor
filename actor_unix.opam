@@ -1,0 +1,29 @@
+opam-version: "2.0"
+name: "actor_unix"
+maintainer: "Liang Wang (ryanrhymes@gmail.com)"
+authors: [ "Liang Wang (ryanrhymes@gmail.com)" ]
+license: "MIT"
+homepage: "https://github.com/ryanrhymes/light_actor/"
+dev-repo: "git+https://github.com/ryanrhymes/light_actor.git"
+bug-reports: "https://github.com/ryanrhymes/light_actor/issues"
+doc: "http://www.cl.cam.ac.uk/~lw525/"
+synopsis: "A distributed data processing system developed in OCaml"
+version: "dev"
+
+build: [
+  ["dune" "subst"] {pinned}
+  ["dune" "build" "-p" name "-j" jobs]
+  ["dune" "runtest" "-p" name "-j" jobs] {with-test}
+]
+
+depexts: [
+  "zmq"
+]
+
+depends: [
+  "ocaml" {>= "4.04.0"}
+  "dune" {build}
+  "ocamlgraph"
+  "owl"
+  "zmq"
+]
