@@ -3,7 +3,7 @@
   (public_name actor_mirage)
   (flags (:standard -w "-50" -safe-string))
   (wrapped false)
-  (preprocess (pps lwt.ppx))
+  (preprocess (pps lwt_ppx))
   (libraries
     mirage-stack-lwt
     mirage-time-lwt

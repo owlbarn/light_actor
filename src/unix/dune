@@ -3,6 +3,6 @@
   (public_name actor_unix)
   (flags (:standard -w "-50" -safe-string))
   (wrapped false)
-  (preprocess (pps lwt.ppx))
+  (preprocess (pps lwt_ppx))
   (libraries zmq-lwt)
 )
