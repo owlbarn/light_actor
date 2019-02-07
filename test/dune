@@ -1,12 +1,15 @@
 (executables
   (public_names
     actor_param_test_0
+    actor_param_test_dnn
   )
   (names
     actor_param_test_0
+    actor_param_test_dnn
   )
   (package actor_unix)
   (libraries
+    owl
     actor
     actor_unix
   )
