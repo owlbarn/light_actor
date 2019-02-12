@@ -5,8 +5,11 @@
   (wrapped false)
   (preprocess (pps lwt.ppx))
   (libraries
+    mirage-stack-lwt
     mirage-time-lwt
     mirage-os-shim
     duration
+    ipaddr
+    logs
   )
 )
