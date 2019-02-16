@@ -1,0 +1,21 @@
+#!/bin/bash
+
+uuid=$1
+case $1 in
+    "server")
+        n=1
+        ;;
+    "w0")
+        n=2
+        ;;
+    "w1")
+        n=3
+        ;;
+esac
+
+./solo5-hvt --net=tap$n lwae.hvt \
+            --ipv4=192.168.0.$n/24 \
+            --ip=192.168.0.$n \
+            --server_ip=192.168.0.1 \
+            --uuid=$uuid \
+            --port=600$n

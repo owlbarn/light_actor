@@ -1,0 +1,39 @@
+#!/bin/bash
+
+[ -z "$maxtap" ] && maxtap=3
+[ -z "$hostif" ] && hostif="ens3"
+
+function up() {
+    ip link add br0 type bridge
+    ip addr add 192.168.0.100/24 dev br0
+    ip link set dev br0 up
+    ip addr show br0
+
+    for x in $(seq $maxtap); do
+        ip tuntap add dev tap$x mode tap user $USER
+        ip link set tap$x master br0
+        ip link set dev tap$x up
+        ip addr show tap$x
+    done
+    iptables -P FORWARD ACCEPT
+    iptables -t nat -A POSTROUTING -s 192.168.0.0/24 -o $hostif -j MASQUERADE
+}
+
+function down() {
+
+    for x in $(seq $maxtap); do
+        ip link delete tap$x
+    done
+    ip link delete br0
+    iptables -P FORWARD DROP
+    ip addr show
+}
+
+if [ "$1" = "up" ]; then
+    up
+elif [ "$1" = "down" ]; then
+    down
+else
+    echo "Usage: $0 {up|down}" >&2
+    exit 123
+fi
