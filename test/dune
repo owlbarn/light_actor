@@ -9,7 +9,7 @@
   )
   (package actor_unix)
   (libraries
-    owl
+    owl-base
     actor
     actor_unix
   )

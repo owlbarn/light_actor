@@ -11,17 +11,16 @@ open Owl_optimise.S
 
 module G = Owl.Neural.S.Graph
 
+module Dataset = Owl_dataset
+
 type task = {
   mutable state  : Checkpoint.state option;
   mutable nn     : G.network;
 }
 
-let make_network () =
-  input [|28;28;1|]
+let make_network input_shape =
+  input input_shape
   |> normalisation ~decay:0.9
-  |> conv2d [|5;5;1;32|] [|1;1|] ~act_typ:Activation.Relu
-  |> max_pool2d [|2;2|] [|2;2|]
-  |> dropout 0.1
   |> fully_connected 1024 ~act_typ:Activation.Relu
   |> linear 10 ~act_typ:Activation.(Softmax 1)
   |> get_network
@@ -49,14 +48,6 @@ let get_next_batch () =
   x, y
 
 
-(* for debugging only .. *)
-(* let print_conv_weight nn =
-  (G.mkpar nn).(2).(0)
-  |> unpack_arr
-  |> Dense.Ndarray.S.get_slice [[0];[0];[];[]]
-  |> Dense.Ndarray.S.print *)
-
-
 module Impl = struct
 
   type key = string
@@ -68,7 +59,7 @@ module Impl = struct
   let start_t = ref 0 (* used in stop function #2 *)
 
   let model : model =
-    let nn = make_network () in
+    let nn = make_network [|28;28;1|] in
     G.init nn;
     let htbl = Hashtbl.create 10 in
     Hashtbl.add htbl "a" (make_task (G.copy nn));

@@ -7,7 +7,7 @@ fi
 
 APP="/code/test/mirage/lwae"
 [ -z "$APP" ] && \
-    APP="/code/_build/default/test/actor_param_test_0.exe"
+    APP="/code/_build/default/test/actor_param_test_dnn.exe"
 
 IP=$(dig +short $UUID)
 [ -z "$IP" ] && (echo "No IP"; exit 123)
