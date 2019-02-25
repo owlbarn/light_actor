@@ -16,7 +16,7 @@ SERVER_IP=$(dig +short "server")
 [ -z "$SERVER_PORT" ] && SERVER_PORT=5555
 [ -z "$PORT" ] && PORT=$SERVER_PORT
 
-$APP --help=plain | grep -qi "mirage"
+echo "$APP" | grep -q "mirage"
 if [ "$?" = 0 ]; then
     APP+=" --uuid=$UUID --ip=$IP --port=$PORT \
            --server_ip=$SERVER_IP --server_port=$SERVER_PORT"
