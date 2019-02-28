@@ -70,14 +70,14 @@ let load_mnist_test_data () =
 (* similar to load_mnist_train_data but returns [x] as [*,28,28,1] ndarray *)
 let load_mnist_train_data_arr () =
   let x, label, y = load_mnist_train_data () in
-  let m = Owl_dense_matrix.S.row_num x in
-  let x = Owl_dense_ndarray.S.reshape x [|m;28;28;1|] in
+  let m = Owl_base_dense_ndarray_generic.row_num x in
+  let x = Owl_base_dense_ndarray_generic.reshape x [|m;28;28;1|] in
   x, label, y
 
 let load_mnist_test_data_arr () =
   let x, label, y = load_mnist_test_data () in
-  let m = Owl_dense_matrix.S.row_num x in
-  let x = Owl_dense_ndarray.S.reshape x [|m;28;28;1|] in
+  let m = Owl_base_dense_ndarray_generic.row_num x in
+  let x = Owl_base_dense_ndarray_generic.reshape x [|m;28;28;1|] in
   x, label, y
 
 (* load cifar train data, there are five batches in total. The loaded data is a

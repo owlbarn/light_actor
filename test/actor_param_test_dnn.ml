@@ -3,13 +3,12 @@
  * Copyright (c) 2016-2019 Liang Wang <liang.wang@cl.cam.ac.uk>
  *)
 
-open Owl
-open Owl.Neural.S
+module N1 = Owl_neural_generic.Make (Owl_base_dense_ndarray.S)
+open N1
 open Graph
-open Owl_algodiff.S
-open Owl_optimise.S
-
-module G = Owl.Neural.S.Graph
+module A = Owl_algodiff_generic.Make (Owl_base_dense_ndarray.S)
+open A
+module G = Graph
 
 module Dataset = Owl_dataset
 
