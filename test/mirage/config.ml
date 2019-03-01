@@ -22,6 +22,7 @@ let port =
 
 let main =
   let packages = [
+    package "owl-base";
     package "actor";
     package "actor_mirage";
     package "duration";
