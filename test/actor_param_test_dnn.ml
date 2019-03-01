@@ -3,40 +3,6 @@
  * Copyright (c) 2016-2019 Liang Wang <liang.wang@cl.cam.ac.uk>
  *)
 
-
-(*
- * This examples shows how to use the Actor engine on one machine. It trains a
- * VGG-like DNN on CIFAR10 dataset using the "data parallelism" approach,
- * which means that, the server and every worker know the whole DNN structure.
- * This approach is easy to implement, and works fine for small DNN.
- *
- * First, let's see how to run this example:
- * 1) Install Actor by `make install`. Note that due to version difference,
- * you might need to change "lwt_ppx" to "lwt.ppx" or vise versa in dune files.
- * Adding "lwt.unix" to the libraries stanza in src/mirage/dune file might also
- * be necessary.
- * 2) Suppose you put the source file in directory "foo", then open 3
- * terminals and run `cd foo/light_actor` on all of them.
- * 3) On one terminal run `_build/default/test/actor_param_test_dnn.exe server`;
- * on the other two, run `_build/default/testactor_param_test_dnn.exe w0` and
- * `_build/default/test/actor_param_test_dnn.exe w1` respectively.
- *
- * Something to note in this example:
- * 1) The parameter server contains only one (k,v) pair to be updated: the
- * whole network itself, and its key "a" in the code is meaningless.
- * 2) Besides network itself, the training status is also necessary to be put
- * in the value. As the code in "push" function shows, it is absolutely
- * necessary to set the "current_batch" and "stop" state manually on each
- * worker after each iteration, or the training will have problems.
- * 3) Only after all the workers start the training process will begin. During
- * training, You can close one worker any time by 'Ctrl-C', and then start it
- * again any time.
- * 4) Feel free to add or remove workers in the "main" function. By default
- * the training won't stop, and two stop functions are provided to explore
- * with.
- *)
-
-
 open Owl
 open Owl.Neural.S
 open Graph
@@ -51,27 +17,18 @@ type task = {
 }
 
 let make_network () =
-  let nn =
-    input [|32;32;3|]
-    |> normalisation ~decay:0.9
-    |> conv2d [|3;3;3;32|] [|1;1|] ~act_typ:Activation.Relu
-    |> conv2d [|3;3;32;32|] [|1;1|] ~act_typ:Activation.Relu ~padding:VALID
-    |> max_pool2d [|2;2|] [|2;2|] ~padding:VALID
-    |> dropout 0.1
-    |> conv2d [|3;3;32;64|] [|1;1|] ~act_typ:Activation.Relu
-    |> conv2d [|3;3;64;64|] [|1;1|] ~act_typ:Activation.Relu ~padding:VALID
-    |> max_pool2d [|2;2|] [|2;2|] ~padding:VALID
-    |> dropout 0.1
-    |> fully_connected 512 ~act_typ:Activation.Relu
-    |> linear 10 ~act_typ:Activation.(Softmax 1)
-    |> get_network
-  in
-  nn
+  input [|28;28;1|]
+  |> normalisation ~decay:0.9
+  |> conv2d [|5;5;1;32|] [|1;1|] ~act_typ:Activation.Relu
+  |> max_pool2d [|2;2|] [|2;2|]
+  |> dropout 0.1
+  |> fully_connected 1024 ~act_typ:Activation.Relu
+  |> linear 10 ~act_typ:Activation.(Softmax 1)
+  |> get_network
 
 let chkpt _state = ()
 let params = Params.config
-  ~batch:(Batch.Sample 100) ~learning_rate:(Learning_Rate.Adagrad 0.005)
-  ~checkpoint:(Checkpoint.Custom chkpt) ~stopping:(Stopping.Const 1e-6) 3.
+    ~batch:(Batch.Mini 100) ~learning_rate:(Learning_Rate.Adagrad 0.005) 0.1
 
 (* Utilities *)
 
@@ -87,8 +44,9 @@ let delta_nn nn0 nn1 =
   G.update nn0 delta
 
 let get_next_batch () =
-  let x, _, y = Dataset.load_cifar_train_data 1 in
-  Dataset.draw_samples_cifar x y 500
+  let x, _, y = Dataset.load_mnist_train_data_arr () in
+  (* let x, y = Dataset.draw_samples_cifar x y 500 in *)
+  x, y
 
 
 (* for debugging only .. *)
@@ -166,23 +124,14 @@ module Impl = struct
       (k, v)
     ) kv_pairs
 
-  (* stop function #1 *)
-  (* let stop () =
+  let stop () =
     let v = (get [|"a"|]).(0) in
     match v.state with
     | Some state ->
         let len = Array.length state.loss in
         let loss = state.loss.(len - 1) |> unpack_flt in
         if (loss < 2.0) then true else false
-    | None       -> false *)
-
-  (* stop function #2 *)
-  (* let stop () =
-    Actor_log.info "start_t = %i" !start_t;
-    start_t := !start_t + 1;
-    !start_t > 7 *)
-
-  let stop () = false
+    | None       -> false
 
 end
 

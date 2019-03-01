@@ -21,6 +21,7 @@ services:
      - server
     volumes:
      - ..:/code
+     - ../../../.owl/dataset/:/home/opam/.owl/dataset
     environment:
      - PORT=6000
     command: w0
@@ -34,6 +35,7 @@ services:
      - server
     volumes:
      - ..:/code
+     - ../../../.owl/dataset/:/home/opam/.owl/dataset
     environment:
      - PORT=6001
     command: w1
