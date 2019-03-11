@@ -5,6 +5,7 @@
   (wrapped false)
   (preprocess (pps lwt_ppx))
   (libraries
+    actor
     mirage-stack-lwt
     mirage-time-lwt
     mirage-os-shim

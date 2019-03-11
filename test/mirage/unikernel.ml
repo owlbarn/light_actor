@@ -11,12 +11,12 @@ module Main (S: Mirage_stack_lwt.V4) = struct
     let server_uuid = "server" in
     let server_ip = Key_gen.server_ip () in
     let server_port = Key_gen.server_port () in
-    let server_addr = "udp://" ^ server_ip ^ ":" ^ server_port in
+    let server_addr = "tcp://" ^ server_ip ^ ":" ^ server_port in
 
     let my_uuid = Key_gen.uuid () in
     let my_ip = Key_gen.ip () in
     let my_port = Key_gen.port () in
-    let my_addr = "udp://" ^ my_ip ^ ":" ^ my_port in
+    let my_addr = "tcp://" ^ my_ip ^ ":" ^ my_port in
 
     (* define the participants *)
     let book = Actor_book.make () in
