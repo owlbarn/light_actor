@@ -3,14 +3,14 @@
  * Copyright (c) 2016-2019 Liang Wang <liang.wang@cl.cam.ac.uk>
  *)
 
+open Lwt.Infix
+
 module N1 = Owl_neural_generic.Make (Owl_base_dense_ndarray.S)
 open N1
 open Graph
 module A = Owl_algodiff_generic.Make (Owl_base_dense_ndarray.S)
 open A
 module G = Graph
-
-module Dataset = Owl_dataset
 
 type task = {
   mutable state  : Checkpoint.state option;
@@ -41,11 +41,34 @@ let delta_nn nn0 nn1 =
   let delta = Owl_utils.aarr_map2 (fun a0 a1 -> Maths.(a0 - a1)) par0 par1 in
   G.update nn0 delta
 
-let get_next_batch () =
-  let x, _, y = Dataset.load_mnist_train_data_arr () in
-  x, y
+module Impl (KV: Mirage_kv_lwt.RO) = struct
 
-module Impl = struct
+  let stored_kv_handler : KV.t option ref = ref None
+  let get_kv () = match !stored_kv_handler with
+    | None -> assert false
+    | Some kv -> kv
+
+  let marshal_from fname =
+    KV.get (get_kv ()) (Mirage_kv.Key.v fname) >|= function
+    | Error _e -> assert false
+    | Ok data -> Marshal.from_string data 0
+
+  let refx = ref (Owl_base_dense_ndarray_s.empty [|60000; 784|])
+  let refy = ref (Owl_base_dense_ndarray_s.empty [|60000; 784|])
+
+  let init () =
+    Lwt.join [
+      marshal_from "mnist-train-images" >>= fun x ->
+      let m = Owl_base_dense_ndarray_generic.row_num x in
+      refx := Owl_base_dense_ndarray_generic.reshape x [|m;28;28;1|];
+      marshal_from "mnist-train-lblvec" >>= fun y ->
+      refy := y; Lwt.return_unit
+    ] >|= fun () ->
+    Actor_log.info "Loaded mnist files"
+
+
+  let get_next_batch () =
+    !refx, !refy (* FIXME: iteration of partial *)
 
   type key = string
 

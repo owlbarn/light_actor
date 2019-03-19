@@ -1,12 +1,17 @@
-include Actor_param_types.Make(Test.Impl)
+open Lwt.Infix
 
-module Main (S: Mirage_stack_lwt.V4) = struct
+module Main (S: Mirage_stack_lwt.V4) (KV: Mirage_kv_lwt.RO) = struct
+
+  module Imp = Test.Impl(KV)
+
+  include Actor_param_types.Make(Imp)
 
   module N = Actor_net_mirage.Make (S)
-  module M = Actor_param.Make (N) (Actor_sys_mirage) (Test.Impl)
+  module M = Actor_param.Make (N) (Actor_sys_mirage) (Imp)
 
-  let start (s : S.t)  =
+  let start (s : S.t) kv =
     N.stored_stack_handler := Some s;
+    Imp.stored_kv_handler := Some kv;
 
     let server_uuid = "server" in
     let server_ip = Key_gen.server_ip () in
@@ -42,6 +47,10 @@ module Main (S: Mirage_stack_lwt.V4) = struct
     }
     in
 
-    M.init context
+    if my_uuid = server_uuid then
+      M.init context
+    else
+      Imp.init () >>= fun () ->
+      M.init context
 
 end
