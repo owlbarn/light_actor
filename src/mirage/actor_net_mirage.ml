@@ -5,83 +5,125 @@
 
 open Lwt.Infix
 
-module Make (S : Mirage_stack_lwt.V4) = struct
+let port_of_string addr =
+  String.split_on_char ':' addr
+  |> List.rev |> List.hd |> int_of_string
 
-  type socket = S.TCPV4.flow
+let addr_of addr =
+  let ip_of_string s =
+    match String.split_on_char '/' s with
+    | _ :: _ :: [x] -> String.split_on_char '/' x |> List.rev |> List.hd
+    | _ -> failwith "Invalid address"
+  in
+  let ip, port =
+    match String.split_on_char ':' addr with
+    | _ :: ip :: port :: [] -> ip, port
+    | _ -> failwith "wrong format"
+  in
+  let dst_port = int_of_string port in
+  let dst = Ipaddr.V4.of_string_exn (ip_of_string ip) in
+  dst, dst_port
 
-  let prefix = "tcp://"
 
-  let conn_pool : (string, socket) Hashtbl.t = Hashtbl.create 128
+module Make_Conn (S : Mirage_stack_lwt.V4) = struct
 
-  let stored_stack_handler : S.t option ref = ref None
+  type t = {
+    flow: S.TCPV4.flow;
+    len:  int;
+    bufs: bytes list;
+  }
 
-  let to_ip s =
-    let s2 =
-      match String.split_on_char '/' s with
-      | _ :: _ :: [x] -> x
-      | _ -> failwith "Err" in
-    String.split_on_char '/' s2 |> List.rev |> List.hd
+  let pool : (string, t) Hashtbl.t = Hashtbl.create 128
 
-  let init () =
-    Random.self_init();
-    Lwt.return_unit
+  let flow addr =
+    let v = Hashtbl.find pool addr in
+    v.flow
+
+  let add addr flow bytes =
+    try
+      let v = Hashtbl.find pool addr in
+      (* assert (v.flow = flow);
+         * assert (v.len >= Bytes.length bytes); *)
+      Hashtbl.replace pool addr
+        {flow=v.flow; len=v.len; bufs=bytes::v.bufs}
+    with Not_found ->
+      let len = Marshal.total_size bytes 0 in
+      Hashtbl.add pool addr
+        {flow=flow; len=len; bufs=[bytes]}
+
+  let is_full addr =
+    let v = Hashtbl.find pool addr in
+    let sum = List.fold_left
+        (fun a el -> a + Bytes.length el) 0 v.bufs in
+    v.len = sum
+
+  let bufs addr =
+    let v = Hashtbl.find pool addr in
+    let bytes = Bytes.concat Bytes.empty (List.rev v.bufs) in
+    Hashtbl.remove pool addr;
+    bytes
 
   let exit () =
     Hashtbl.iter (fun _ v ->
-        Lwt.async (fun () -> S.TCPV4.close  v)
-      ) conn_pool;
+        Lwt.async (fun () -> S.TCPV4.close v.flow)
+      ) pool
+end
+
+
+module Make (S : Mirage_stack_lwt.V4) = struct
+
+  let prefix = "tcp://"
+
+  module Conn = Make_Conn(S)
+
+  type socket = Conn.t
+
+  let stored_stack_handler : S.t option ref = ref None
+  let get_stack () = match !stored_stack_handler with
+    | None -> failwith "Uninitialized s"
+    | Some s -> s
+
+  let init () =
+    Lwt.return_unit
+
+  let exit () =
+    Conn.exit ();
     Lwt.return_unit
 
   let listen addr callback =
-    let port = String.split_on_char ':' addr
-               |> List.rev |> List.hd |> int_of_string in
-    let s = match !stored_stack_handler with
-      | None -> failwith "Uninitialized s"
-      | Some s -> s in
-
-    let rec fn flow =
-      let ip, port = S.TCPV4.dst flow in
+    let rec handler flow =
+      let string_of_flow flow =
+        let ip, port = S.TCPV4.dst flow in
+        (Ipaddr.V4.to_string ip) ^ (string_of_int port)
+      in
+      let daddr = string_of_flow flow in
       S.TCPV4.read flow >>= function
-      | Error e -> assert false
-      | Ok `Eof -> Actor_log.debug "EOF from %s:%d" (Ipaddr.V4.to_string ip) port; Lwt.return_unit
+      | Error _e -> failwith "S.TCPV4.read flow"
+      | Ok `Eof -> Lwt.return_unit
       | Ok (`Data buf) ->
-        Actor_log.debug "READ from %s:%d %d Bytes" (Ipaddr.V4.to_string ip) port (Cstruct.len buf);
-        callback (Cstruct.to_string buf) >>= fun () -> fn flow
+        Conn.add daddr flow (Cstruct.to_bytes buf);
+        if Conn.is_full daddr then
+          callback (Bytes.to_string (Conn.bufs daddr)) >>=
+          fun () -> handler flow
+        else
+          handler flow
     in
-
-    S.listen_tcpv4 s ~port fn;
+    let s = get_stack () in
+    S.listen_tcpv4 s ~port:(port_of_string addr) handler;
     S.listen s
 
   let send addr data =
     let%lwt flow =
-      if Hashtbl.mem conn_pool addr then (
-        Actor_log.debug "Found connection with %s" addr;
-        Lwt.return (Hashtbl.find conn_pool addr)
-      ) else (
-        let ip, port =
-          match String.split_on_char ':' addr with
-          | _ :: ip :: port :: [] -> ip, port
-          | _ -> failwith "wrong format" in
-        let dst_port = int_of_string port in
-        let dst = Ipaddr.V4.of_string_exn (to_ip ip) in
-        let s = match !stored_stack_handler with
-          | None -> failwith "Uninitialized s"
-          | Some s -> s
-        in
-        let rec loop () =
-          S.TCPV4.create_connection (S.tcpv4 s) (dst, dst_port) >>= function
-          | Error _err ->
-            Actor_log.warn "failed to connect with %s" addr;
-            loop ()
-          | Ok flow ->
-            Actor_log.debug "create_connection with %s" addr;
-            Hashtbl.add conn_pool addr flow;
-            Lwt.return flow
-        in
-        loop ()
-      )
+      try
+        Lwt.return (Conn.flow addr)
+      with Not_found ->
+        S.TCPV4.create_connection (S.tcpv4 (get_stack ())) (addr_of addr)
+        >>= function
+        | Error _err -> failwith "S.TCPV4.create_connection"
+        | Ok flow ->
+          Conn.add addr flow (Bytes.of_string (Marshal.to_string "" []););
+          Lwt.return flow
     in
-    Actor_log.debug "Sending to %s with %d Bytes" addr (String.length data);
     let%lwt _ = S.TCPV4.write flow (Cstruct.of_string data) in
     Lwt.return_unit
 
