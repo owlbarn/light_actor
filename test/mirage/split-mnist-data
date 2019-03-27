@@ -1,0 +1,27 @@
+#!/bin/bash
+
+img_file="train-images-idx3-ubyte"
+lvl_file="train-labels-idx1-ubyte"
+
+[ -f "$img_file" ] || curl -o - http://yann.lecun.com/exdb/mnist/"$img_file".gz > "$img_file"
+[ -f "$lvl_file" ] || curl -o - http://yann.lecun.com/exdb/mnist/"$lvl_file".gz > "$lvl_file"
+
+batch=1000
+max=$((60000 / batch - 1))
+
+mkdir -p t
+
+img_header=16
+time for x in $(seq 0 $max); do
+    num=$(printf "%03d" $x)
+    unit=$((28 * 28 * batch))
+    dd if=$img_file of=t/$img_file-$num.bmp bs=1 count=$unit skip=$((img_header + x * unit))
+done
+
+lvl_header=8
+for x in $(seq 0 $max); do
+    num=$(printf "%03d" $x)
+    unit=$((1 * batch))
+    dd if=$lvl_file of=t/$lvl_file-$num.lvl bs=1 count=$unit skip=$((lvl_header + x * unit))
+done
+
