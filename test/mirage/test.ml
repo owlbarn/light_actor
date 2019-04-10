@@ -53,17 +53,44 @@ module Impl (KV: Mirage_kv_lwt.RO) = struct
     | Error _e -> assert false
     | Ok data -> Marshal.from_string data 0
 
-  let refx = ref (Owl_base_dense_ndarray_s.empty [|60000; 784|])
-  let refy = ref (Owl_base_dense_ndarray_s.empty [|60000; 784|])
+  let image_len = 28
+  let ncat = 10
+  let nent = 60_000
+  let refx = ref (Owl_base_dense_ndarray_s.empty [|nent; image_len * image_len|])
+  let refy = ref (Owl_base_dense_ndarray_s.empty [|nent; ncat|])
+
+  let load_image_file () =
+    KV.get (get_kv ()) (Mirage_kv.Key.v "image") >>= function
+    | Error _e -> assert false
+    | Ok data ->
+      let buf = Bytes.of_string data in
+      let acc = ref [] in
+      Bytes.iter (fun ch ->
+          acc := (int_of_char ch |> float_of_int) :: !acc)
+        buf;
+      let ar = Array.of_list (List.rev !acc) in
+      refx := Owl_base_dense_ndarray.S.of_array ar [|nent;image_len;image_len;1|];
+      Lwt.return_unit
+
+  let load_label_file () =
+    KV.get (get_kv ()) (Mirage_kv.Key.v "label") >>= function
+    | Error _e -> assert false
+    | Ok data ->
+      let buf = Bytes.of_string data in
+      (* take single digit && accumulate a bitmap of it in a list *)
+      let acc = ref [] in
+      Bytes.iter (fun ch ->
+          let a = Array.init ncat (fun idx ->
+              if idx = (int_of_char ch) then 1. else 0.) in
+          acc := a :: !acc)
+        buf;
+      let x = Array.concat (List.rev !acc) in
+      refy := Owl_base_dense_ndarray.S.of_array x [|nent;ncat|];
+      Lwt.return_unit
 
   let init () =
-    Lwt.join [
-      marshal_from "mnist-train-images" >>= fun x ->
-      let m = Owl_base_dense_ndarray_generic.row_num x in
-      refx := Owl_base_dense_ndarray_generic.reshape x [|m;28;28;1|];
-      marshal_from "mnist-train-lblvec" >>= fun y ->
-      refy := y; Lwt.return_unit
-    ] >|= fun () ->
+    load_image_file () >>= fun () ->
+    load_label_file () >|= fun () ->
     Actor_log.info "Loaded mnist files"
 
 
