@@ -53,14 +53,16 @@ module Impl (KV: Mirage_kv_lwt.RO) = struct
     | Error _e -> assert false
     | Ok data -> Marshal.from_string data 0
 
+  let nth = ref 0
   let image_len = 28
   let ncat = 10
-  let nent = 60_000
+  let nent = 1000
   let refx = ref (Owl_base_dense_ndarray_s.empty [|nent; image_len * image_len|])
   let refy = ref (Owl_base_dense_ndarray_s.empty [|nent; ncat|])
 
   let load_image_file () =
-    KV.get (get_kv ()) (Mirage_kv.Key.v "image") >>= function
+    let fname = Printf.sprintf "train-images-idx3-ubyte-%03d.bmp" !nth in
+    KV.get (get_kv ()) (Mirage_kv.Key.v fname) >>= function
     | Error _e -> assert false
     | Ok data ->
       let buf = Bytes.of_string data in
@@ -73,7 +75,8 @@ module Impl (KV: Mirage_kv_lwt.RO) = struct
       Lwt.return_unit
 
   let load_label_file () =
-    KV.get (get_kv ()) (Mirage_kv.Key.v "label") >>= function
+    let fname = Printf.sprintf "train-labels-idx1-ubyte-%03d.lvl" !nth in
+    KV.get (get_kv ()) (Mirage_kv.Key.v fname) >>= function
     | Error _e -> assert false
     | Ok data ->
       let buf = Bytes.of_string data in
@@ -88,14 +91,18 @@ module Impl (KV: Mirage_kv_lwt.RO) = struct
       refy := Owl_base_dense_ndarray.S.of_array x [|nent;ncat|];
       Lwt.return_unit
 
-  let init () =
-    load_image_file () >>= fun () ->
-    load_label_file () >|= fun () ->
-    Actor_log.info "Loaded mnist files"
-
-
   let get_next_batch () =
-    !refx, !refy (* FIXME: iteration of partial *)
+    let prev = !nth in
+    Lwt.async (fun () ->
+        load_image_file () >>= fun () ->
+        load_label_file () >>= fun () ->
+        nth := !nth + 1;
+        Lwt.return_unit);
+    !refx, !refy
+
+  let init () =
+    let _, _ = get_next_batch () in
+    Lwt.return_unit
 
   type key = string
 
