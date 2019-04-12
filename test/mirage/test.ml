@@ -20,13 +20,13 @@ type task = {
 let make_network input_shape =
   input input_shape
   |> normalisation ~decay:0.9
-  |> fully_connected 1024 ~act_typ:Activation.Relu
+  |> fully_connected 256 ~act_typ:Activation.Relu
   |> linear 10 ~act_typ:Activation.(Softmax 1)
   |> get_network
 
 let chkpt _state = ()
 let params = Params.config
-    ~batch:(Batch.Mini 100) ~learning_rate:(Learning_Rate.Adagrad 0.005) 0.1
+    ~batch:(Batch.Mini 100) ~learning_rate:(Learning_Rate.Adagrad 0.005) 1.
 
 (* Utilities *)
 
