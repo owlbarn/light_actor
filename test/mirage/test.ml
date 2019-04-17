@@ -157,6 +157,7 @@ module Impl (KV: Mirage_kv_lwt.RO) = struct
 
   (* on server *)
   let pull kv_pairs =
+    Gc.compact (); (* avoid OoM *)
     Array.map (fun (k, v) ->
       Actor_log.info "push: %s, %s" k (G.get_network_name v.nn);
       let u = (get [|k|]).(0) in
