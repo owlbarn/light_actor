@@ -5,9 +5,9 @@ elif [ -z "$UUID" ]; then
     exit 123
 fi
 
-#APP="/code/test/mirage/lwae"
+APP="/code/test/mirage/lwae"
 [ -z "$APP" ] && \
-    APP="/code/_build/default/test/actor_param_test_0.exe"
+    APP="/code/_build/default/test/actor_param_test_dnn.exe"
 
 IP=$(dig +short $UUID)
 [ -z "$IP" ] && (echo "No IP"; exit 123)
@@ -16,10 +16,11 @@ SERVER_IP=$(dig +short "server")
 [ -z "$SERVER_PORT" ] && SERVER_PORT=5555
 [ -z "$PORT" ] && PORT=$SERVER_PORT
 
-echo "$APP" | grep -q "mirage"
+echo "$APP" | grep -qi "mirage"
 if [ "$?" = 0 ]; then
+    echo "Starting MirageOS"
     APP+=" --uuid=$UUID --ip=$IP --port=$PORT \
-           --server_ip=$SERVER_IP --server_port=$SERVER_PORT"
+           --server_ip=$SERVER_IP --server_port=$SERVER_PORT -l \"*:debug\""
 else
     APP+=" $UUID"
 fi

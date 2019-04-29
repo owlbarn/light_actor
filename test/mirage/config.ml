@@ -22,6 +22,7 @@ let port =
 
 let main =
   let packages = [
+    package "owl-base";
     package "actor";
     package "actor_mirage";
     package "duration";
@@ -34,8 +35,12 @@ let main =
       ip;
       port;
     ] in
-  foreign ~packages ~keys "Unikernel.Main" (stackv4 @-> job)
+  foreign ~packages ~keys "Unikernel.Main" (stackv4 @-> kv_ro @-> job)
+
+let disk = generic_kv_ro "t"
 
 let () =
   let stack = generic_stackv4 default_network in
-  register "lwae" [main $ stack]
+  register "lwae" [
+    main $ stack $ disk
+  ]

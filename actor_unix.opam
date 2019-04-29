@@ -23,7 +23,7 @@ depexts: [
 depends: [
   "ocaml" {>= "4.04.0"}
   "dune" {build}
+  "actor"
   "ocamlgraph"
   "owl"
-  "zmq"
 ]

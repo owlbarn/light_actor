@@ -13,7 +13,8 @@ case $1 in
         ;;
 esac
 
-./solo5-hvt --net=tap$n lwae.hvt \
+./solo5-hvt --disk=fat_block1.img \
+            --net=tap$n lwae.hvt \
             --ipv4=192.168.0.$n/24 \
             --ip=192.168.0.$n \
             --server_ip=192.168.0.1 \
