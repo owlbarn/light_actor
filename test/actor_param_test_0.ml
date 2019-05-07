@@ -93,8 +93,12 @@ let main args =
 
   (* define the participants *)
   let book = Actor_book.make () in
-  Actor_book.add book "w0" "" true (-1);
-  Actor_book.add book "w1" "" true (-1);
+  let num =
+    try Unix.getenv "NWORKERS" |> int_of_string
+    with Not_found -> 2 in
+  for i=0 to num-1 do
+    Actor_book.add book ("w" ^ (string_of_int i)) "" true (-1);
+  done;
   if my_uuid <> server_uuid then
     Actor_book.set_addr book my_uuid my_addr;
 

@@ -1,5 +1,10 @@
 open Lwt.Infix
 
+let nworkers =
+  try
+    Unix.getenv "NWORKERS" |> int_of_string
+  with Not_found -> 2
+
 type obj =
   | Server
   | Worker of int
@@ -17,6 +22,9 @@ let _colorful = ref true
 
 type color = Red | Green | Yellow | Blue | Magenta | Cyan
 
+let colors =
+  [|Red; Green; Yellow; Blue; Magenta; Cyan|]
+
 let _color_to_str = function
   | Red     -> "\027[31m"
   | Green   -> "\027[32m"
@@ -31,10 +39,8 @@ let _shall_paint c s =
   | false -> s
 
 let color_of = function
-  | Server -> Yellow
-  | Worker 0 -> Magenta
-  | Worker 1 -> Green
-  | Worker _ -> failwith "Incorrect object"
+  | Server -> colors.(0)
+  | Worker x -> colors.(Random.int (Array.length colors))
 
 let pfx_of obj =
   _shall_paint (color_of obj) (uuid_of obj)
@@ -43,8 +49,8 @@ let cmdstr_of obj =
   let i = idx_of obj in
   let uuid = uuid_of obj in
   Printf.sprintf
-    "sudo ./solo5-hvt --disk=fat_block1.img --net=tap%d lwae.hvt --server_ip=192.168.0.1 --ipv4=192.168.0.%d/24 --ip=192.168.0.%d --port=600%d --uuid=%s"
-    i i i i uuid
+    "sudo ./solo5-hvt --disk=fat_block1.img --net=tap%d lwae.hvt --server_ip=192.168.0.1 --ipv4=192.168.0.%d/24 --ip=192.168.0.%d --port=600%d --uuid=%s --nworkers=%d"
+    i i i i uuid nworkers
 
 let proc obj =
   let cmdstr = cmdstr_of obj in
@@ -61,10 +67,10 @@ let proc obj =
   loop ()
 
 let () =
-  Lwt_main.run (Lwt.join [
-      proc Server;
-      proc (Worker 0);
-      proc (Worker 1);
-    ])
+  let objs = ref [proc Server] in
+  for i=0 to nworkers-1 do
+    objs := proc (Worker i) :: !objs;
+  done;
+  Lwt_main.run (Lwt.join (List.rev !objs))
 
 (* ocamlfind ocamlopt -o runall -linkpkg -package lwt,lwt.unix runall.ml && rm *.o *.cm? *)

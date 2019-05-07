@@ -1,5 +1,9 @@
 #!/bin/bash
 
+# ex:
+#   sudo sh -c 'maxtap=9 ./net up'
+#   sudo sh -c 'maxtap=9 ./net down'
+
 [ -z "$maxtap" ] && maxtap=3
 [ -z "$hostif" ] && hostif="ens3"
 

@@ -20,6 +20,10 @@ let port =
   let doc = Key.Arg.info ~doc:"my port." ["port"] in
   Key.(create "port" Arg.(opt string "6000" doc))
 
+let nworkers =
+  let doc = Key.Arg.info ~doc:"total number of workers." ["nworkers"] in
+  Key.(create "nworkers" Arg.(opt int 2 doc))
+
 let main =
   let packages = [
     package "owl-base";
@@ -35,6 +39,7 @@ let main =
       ip;
       port;
     ] in
+  let keys = (Key.abstract nworkers) :: keys in
   foreign ~packages ~keys "Unikernel.Main" (stackv4 @-> kv_ro @-> job)
 
 let disk = generic_kv_ro "t"
