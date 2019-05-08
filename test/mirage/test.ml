@@ -60,8 +60,8 @@ module Make_Impl (KV: Mirage_kv_lwt.RO) (R: Mirage_random.C) = struct
   let refx = ref (Owl_base_dense_ndarray_s.empty [|nent; image_len * image_len|])
   let refy = ref (Owl_base_dense_ndarray_s.empty [|nent; ncat|])
 
-  let load_image_file () =
-    let fname = Printf.sprintf "train-images-idx3-ubyte-%03d.bmp" !nth in
+  let load_image_file prefix =
+    let fname = Printf.sprintf "%s-images-idx3-ubyte-%03d.bmp" prefix !nth in
     KV.get (get_kv ()) (Mirage_kv.Key.v fname) >>= function
     | Error _e -> assert false
     | Ok data ->
@@ -74,8 +74,8 @@ module Make_Impl (KV: Mirage_kv_lwt.RO) (R: Mirage_random.C) = struct
       refx := Owl_base_dense_ndarray.S.of_array ar [|nent;image_len;image_len;1|];
       Lwt.return_unit
 
-  let load_label_file () =
-    let fname = Printf.sprintf "train-labels-idx1-ubyte-%03d.lvl" !nth in
+  let load_label_file prefix =
+    let fname = Printf.sprintf "%s-labels-idx1-ubyte-%03d.lvl" prefix !nth in
     KV.get (get_kv ()) (Mirage_kv.Key.v fname) >>= function
     | Error _e -> assert false
     | Ok data ->
@@ -93,8 +93,8 @@ module Make_Impl (KV: Mirage_kv_lwt.RO) (R: Mirage_random.C) = struct
 
   let get_next_batch () =
     Lwt.async (fun () ->
-        load_image_file () >>= fun () ->
-        load_label_file () >>= fun () ->
+        load_image_file "train" >>= fun () ->
+        load_label_file "train" >>= fun () ->
         nth := Randomconv.int ~bound:(60_000 / nent) R.generate;
         Lwt.return_unit);
     (* FIXME: optimistically assumes loading is done by next iteration *)
@@ -109,8 +109,6 @@ module Make_Impl (KV: Mirage_kv_lwt.RO) (R: Mirage_random.C) = struct
   type value = task
 
   type model = (key, value) Hashtbl.t
-
-  let start_t = ref 0 (* used in stop function #2 *)
 
   let model : model =
     let nn = make_network [|28;28;1|] in
