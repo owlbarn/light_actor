@@ -169,13 +169,52 @@ module Make_Impl (KV: Mirage_kv_lwt.RO) (R: Mirage_random.C) = struct
       (k, v)
     ) kv_pairs
 
+  (* FIXME: to port this into Owl_base? *)
+  module My = struct
+    module OBS = Owl_base_dense_ndarray_s
+
+    let row_num x = (OBS.shape x).(0)
+    let col_num x = (OBS.shape x).(1)
+    let row x idx = OBS.get_slice [[idx]] x
+
+    let fold_rows f x =
+      let acc = ref [] in
+      for i=0 to (row_num x)-1 do
+        acc := (f (row x i)) :: !acc
+      done;
+      OBS.of_array (Array.of_list (List.rev !acc)) [|1;(row_num x)|]
+
+    let col_max nrr =
+      let idx = ref 0 in
+      for i=0 to (col_num nrr)-1 do
+        let a = OBS.get nrr [|0;!idx|] in
+        let b = OBS.get nrr [|0;i|] in
+        if b > a then idx := i
+      done;
+      float_of_int !idx
+  end
+
+  let test network =
+    Lwt.async (fun () ->
+        nth := Randomconv.int ~bound:(10_000 / nent) R.generate;
+        load_image_file "t10k" >>= fun () ->
+        load_label_file "t10k");
+    Gc.compact (); (* FIXME: spend some time here *)
+    let m = My.row_num !refx in
+    let mat2num = My.(fold_rows col_max) in
+    let pred = mat2num (Graph.model network !refx) in
+    let fact = mat2num !refy in
+    let accu = Owl_base_dense_ndarray_s.(elt_equal pred fact |> sum') in
+    Owl_log.info "Accuracy on test set: %f" (accu /. (float_of_int m))
+
   let stop () =
     let v = (get [|"a"|]).(0) in
     match v.state with
+    | None -> false
     | Some state ->
       let len = Array.length state.loss in
       let loss = state.loss.(len - 1) |> unpack_flt in
-      if (loss < 2.0) then true else false
-    | None -> false
-
+      if (loss >= 2.0) then false else begin
+        test v.nn; true
+      end
 end
