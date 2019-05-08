@@ -31,6 +31,7 @@ let main =
     package "actor_mirage";
     package "duration";
     package "lwt_ppx";
+    package "randomconv";
   ] in
   let keys = List.map Key.abstract [
       server_ip;
@@ -40,12 +41,12 @@ let main =
       port;
     ] in
   let keys = (Key.abstract nworkers) :: keys in
-  foreign ~packages ~keys "Unikernel.Main" (stackv4 @-> kv_ro @-> job)
+  foreign ~packages ~keys "Unikernel.Main" (stackv4 @-> kv_ro @-> random @-> job)
 
 let disk = generic_kv_ro "t"
 
 let () =
   let stack = generic_stackv4 default_network in
   register "lwae" [
-    main $ stack $ disk
+    main $ stack $ disk $ default_random
   ]

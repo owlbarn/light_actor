@@ -41,7 +41,7 @@ let delta_nn nn0 nn1 =
   let delta = Owl_utils.aarr_map2 (fun a0 a1 -> Maths.(a0 - a1)) par0 par1 in
   G.update nn0 delta
 
-module Impl (KV: Mirage_kv_lwt.RO) = struct
+module Make_Impl (KV: Mirage_kv_lwt.RO) (R: Mirage_random.C) = struct
 
   let stored_kv_handler : KV.t option ref = ref None
   let get_kv () = match !stored_kv_handler with
@@ -92,12 +92,12 @@ module Impl (KV: Mirage_kv_lwt.RO) = struct
       Lwt.return_unit
 
   let get_next_batch () =
-    let prev = !nth in
     Lwt.async (fun () ->
         load_image_file () >>= fun () ->
         load_label_file () >>= fun () ->
-        nth := !nth + 1;
+        nth := Randomconv.int ~bound:(60_000 / nent) R.generate;
         Lwt.return_unit);
+    (* FIXME: optimistically assumes loading is done by next iteration *)
     !refx, !refy
 
   let init () =

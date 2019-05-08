@@ -1,15 +1,15 @@
 open Lwt.Infix
 
-module Main (S: Mirage_stack_lwt.V4) (KV: Mirage_kv_lwt.RO) = struct
+module Main (S: Mirage_stack_lwt.V4) (KV: Mirage_kv_lwt.RO) (R: Mirage_random.C) = struct
 
-  module Imp = Test.Impl(KV)
+  module Imp = Test.Make_Impl(KV)(R)
 
   include Actor_param_types.Make(Imp)
 
   module N = Actor_net_mirage.Make (S)
   module M = Actor_param.Make (N) (Actor_sys_mirage) (Imp)
 
-  let start (s : S.t) kv =
+  let start (s : S.t) kv _r =
     N.stored_stack_handler := Some s;
     Imp.stored_kv_handler := Some kv;
 
