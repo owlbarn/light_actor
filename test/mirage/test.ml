@@ -97,6 +97,7 @@ module Make_Impl (KV: Mirage_kv_lwt.RO) (R: Mirage_random.C) = struct
         load_label_file "train" >>= fun () ->
         nth := Randomconv.int ~bound:(60_000 / nent) R.generate;
         Lwt.return_unit);
+    Gc.compact ();
     (* FIXME: optimistically assumes loading is done by next iteration *)
     !refx, !refy
 

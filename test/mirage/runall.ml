@@ -49,7 +49,7 @@ let cmdstr_of obj =
   let i = idx_of obj in
   let uuid = uuid_of obj in
   Printf.sprintf
-    "sudo ./solo5-hvt --disk=fat_block1.img --net=tap%d lwae.hvt --server_ip=192.168.0.1 --ipv4=192.168.0.%d/24 --ip=192.168.0.%d --port=600%d --uuid=%s --nworkers=%d"
+    "sudo ./solo5-hvt --mem=256 --disk=fat_block1.img --net=tap%d lwae.hvt --server_ip=192.168.0.1 --ipv4=192.168.0.%d/24 --ip=192.168.0.%d --port=600%d --uuid=%s --nworkers=%d"
     i i i i uuid nworkers
 
 let proc obj =
