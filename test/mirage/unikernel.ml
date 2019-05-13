@@ -25,8 +25,9 @@ module Main (S: Mirage_stack_lwt.V4) (KV: Mirage_kv_lwt.RO) = struct
 
     (* define the participants *)
     let book = Actor_book.make () in
-    Actor_book.add book "w0" "" true (-1);
-    Actor_book.add book "w1" "" true (-1);
+    for i=0 to ((Key_gen.nworkers ()) - 1) do
+      Actor_book.add book ("w" ^ (string_of_int i)) "" true (-1);
+    done;
 
     let my_addr =
       if my_uuid = server_uuid then
