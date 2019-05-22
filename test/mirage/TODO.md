@@ -1,6 +1,7 @@
 # ToDo
 
 ## Bugfix
+- Don't kill when it's done.
 - Lwt'ization of loading data from files. Potentially fail.
 
 ## New features
