@@ -95,11 +95,8 @@ module Make
 
     try%lwt (
       (* start server service *)
-      let thread_0 = Net.listen context.my_addr (process context) in
-      let thread_1 = heartbeat context in
-      let%lwt () = thread_0 in
-      let%lwt () = thread_1 in
-      Lwt.return ()
+      let%lwt () = Net.listen context.my_addr (process context) in
+      heartbeat context
     )
     with _ -> (
       (* clean up when server exits *)
