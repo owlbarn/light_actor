@@ -5,10 +5,11 @@
 
 open Lwt.Infix
 
-module N1 = Owl_neural_generic.Make (Owl_base_dense_ndarray.S)
+module OBS = Owl_base_dense_ndarray.S
+module N1 = Owl_neural_generic.Make (OBS)
 open N1
 open Graph
-module A = Owl_algodiff_generic.Make (Owl_base_dense_ndarray.S)
+module A = Owl_algodiff_generic.Make (OBS)
 open A
 module G = Graph
 
@@ -57,8 +58,8 @@ module Make_Impl (KV: Mirage_kv_lwt.RO) (R: Mirage_random.C) = struct
   let image_len = 28
   let ncat = 10
   let nent = 1000
-  let refx = ref (Owl_base_dense_ndarray_s.empty [|nent; image_len * image_len|])
-  let refy = ref (Owl_base_dense_ndarray_s.empty [|nent; ncat|])
+  let refx = ref (OBS.empty [|nent; image_len * image_len|])
+  let refy = ref (OBS.empty [|nent; ncat|])
 
   let load_file ~fname ~list_of_ch ~target ~shape =
     KV.get (get_kv ()) (Mirage_kv.Key.v fname) >>= function
@@ -68,7 +69,7 @@ module Make_Impl (KV: Mirage_kv_lwt.RO) (R: Mirage_random.C) = struct
         if i < 0 then acc else
           loop (i-1) ((list_of_ch data.[i]) @ acc)
       in
-      target := Owl_base_dense_ndarray_s.of_array
+      target := OBS.of_array
           (loop (String.length data - 1) [] |> Array.of_list)
           shape;
       Lwt.return_unit
@@ -164,8 +165,6 @@ module Make_Impl (KV: Mirage_kv_lwt.RO) (R: Mirage_random.C) = struct
 
   (* FIXME: to port this into Owl_base? *)
   module My = struct
-    module OBS = Owl_base_dense_ndarray_s
-
     let row_num x = (OBS.shape x).(0)
     let col_num x = (OBS.shape x).(1)
     let row x idx = OBS.get_slice [[idx]] x
@@ -197,7 +196,7 @@ module Make_Impl (KV: Mirage_kv_lwt.RO) (R: Mirage_random.C) = struct
     let mat2num = My.(fold_rows col_max) in
     let pred = mat2num (Graph.model network !refx) in
     let fact = mat2num !refy in
-    let accu = Owl_base_dense_ndarray_s.(elt_equal pred fact |> sum') in
+    let accu = OBS.(elt_equal pred fact |> sum') in
     Owl_log.info "Accuracy on test set: %f" (accu /. (float_of_int m))
 
   let stop () =
