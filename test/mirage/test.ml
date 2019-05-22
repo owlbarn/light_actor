@@ -60,36 +60,29 @@ module Make_Impl (KV: Mirage_kv_lwt.RO) (R: Mirage_random.C) = struct
   let refx = ref (Owl_base_dense_ndarray_s.empty [|nent; image_len * image_len|])
   let refy = ref (Owl_base_dense_ndarray_s.empty [|nent; ncat|])
 
+  let load_file ~fname ~list_of_ch ~target ~shape =
+    KV.get (get_kv ()) (Mirage_kv.Key.v fname) >>= function
+    | Error _e -> Actor_log.error "Failed to open %s" fname; assert false
+    | Ok data ->
+      let rec loop i acc =
+        if i < 0 then acc else
+          loop (i-1) ((list_of_ch data.[i]) @ acc)
+      in
+      target := Owl_base_dense_ndarray_s.of_array
+          (loop (String.length data - 1) [] |> Array.of_list)
+          shape;
+      Lwt.return_unit
+
   let load_image_file prefix =
     let fname = Printf.sprintf "%s-images-idx3-ubyte-%03d.bmp" prefix !nth in
-    KV.get (get_kv ()) (Mirage_kv.Key.v fname) >>= function
-    | Error _e -> assert false
-    | Ok data ->
-      let buf = Bytes.of_string data in
-      let acc = ref [] in
-      Bytes.iter (fun ch ->
-          acc := (int_of_char ch |> float_of_int) :: !acc)
-        buf;
-      let ar = Array.of_list (List.rev !acc) in
-      refx := Owl_base_dense_ndarray.S.of_array ar [|nent;image_len;image_len;1|];
-      Lwt.return_unit
+    let list_of_ch ch = [ float_of_int (int_of_char ch)] in
+    load_file ~fname ~list_of_ch ~target:refx ~shape:[|nent;image_len;image_len;1|]
 
   let load_label_file prefix =
     let fname = Printf.sprintf "%s-labels-idx1-ubyte-%03d.lvl" prefix !nth in
-    KV.get (get_kv ()) (Mirage_kv.Key.v fname) >>= function
-    | Error _e -> assert false
-    | Ok data ->
-      let buf = Bytes.of_string data in
-      (* take single digit && accumulate a bitmap of it in a list *)
-      let acc = ref [] in
-      Bytes.iter (fun ch ->
-          let a = Array.init ncat (fun idx ->
-              if idx = (int_of_char ch) then 1. else 0.) in
-          acc := a :: !acc)
-        buf;
-      let x = Array.concat (List.rev !acc) in
-      refy := Owl_base_dense_ndarray.S.of_array x [|nent;ncat|];
-      Lwt.return_unit
+    let list_of_ch ch = List.init ncat (fun i ->
+        if i = int_of_char ch then 1. else 0.) in
+    load_file ~fname ~list_of_ch ~target:refy ~shape:[|nent;ncat|]
 
   let get_next_batch () =
     Lwt.async (fun () ->
