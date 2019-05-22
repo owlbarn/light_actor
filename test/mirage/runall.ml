@@ -40,7 +40,7 @@ let _shall_paint c s =
 
 let color_of = function
   | Server -> colors.(0)
-  | Worker x -> colors.(Random.int (Array.length colors))
+  | Worker x -> colors.((x + 1) mod (Array.length colors))
 
 let pfx_of obj =
   _shall_paint (color_of obj) (uuid_of obj)
