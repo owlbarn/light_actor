@@ -1,27 +1,33 @@
 #!/bin/bash
 
-img_file="train-images-idx3-ubyte"
-lvl_file="train-labels-idx1-ubyte"
-
-[ -f "$img_file" ] || curl -o - http://yann.lecun.com/exdb/mnist/"$img_file".gz > "$img_file"
-[ -f "$lvl_file" ] || curl -o - http://yann.lecun.com/exdb/mnist/"$lvl_file".gz > "$lvl_file"
-
-batch=1000
-max=$((60000 / batch - 1))
+#    bytes      file name
+#----------------------------------
+# 47040016 train-images-idx3-ubyte
+#    60008 train-labels-idx1-ubyte
+#  7840016 t10k-images-idx3-ubyte
+#    10008 t10k-labels-idx1-ubyte
 
 mkdir -p t
 
-img_header=16
-time for x in $(seq 0 $max); do
-    num=$(printf "%03d" $x)
-    unit=$((28 * 28 * batch))
-    dd if=$img_file of=t/$img_file-$num.bmp bs=1 count=$unit skip=$((img_header + x * unit))
+for t in "train" "t10k"; do
+    for x in "images" "labels"; do
+        [ "$x" = "images" ] && n=3 || n=1
+        f="$t-$x-idx$n-ubyte"
+        [ -f "$f" ] || \
+            curl -o - http://yann.lecun.com/exdb/mnist/"$f".gz | gunzip > "$f"
+    done
 done
 
-lvl_header=8
-for x in $(seq 0 $max); do
-    num=$(printf "%03d" $x)
-    unit=$((1 * batch))
-    dd if=$lvl_file of=t/$lvl_file-$num.lvl bs=1 count=$unit skip=$((lvl_header + x * unit))
+batch=1000
+ls *-ubyte | while read f; do
+    echo $f | grep -q "images" && header=16 || header=8
+    echo $f | grep -q "images" && ext="bmp" || ext="lvl"
+    echo $f | grep -q "images" && unit=$((28 * 28 * batch)) || unit=$((1 * batch))
+    echo $f | grep -q "train" && entries=60000 || entries=10000
+    max=$((entries / batch - 1))
+    for i in $(seq 0 $max); do
+        n=$(printf "%03d" $i)
+        skip=$((header + i * unit))
+        dd if="$f" of="t/$f-$n.$ext" bs=1 count="$unit" skip="$skip"
+    done
 done
-
